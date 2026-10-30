@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Magnifier, Persons } from "@gravity-ui/icons";
+import Link from "next/link";
+import { ArrowChevronRight, Magnifier, Persons } from "@gravity-ui/icons";
 import { cn } from "@heroui/react";
 import type { Paciente } from "@/lib/api/pacientes";
 
@@ -132,8 +133,8 @@ export function TablaPacientes({ pacientes }: { pacientes: Paciente[] }) {
               <th scope="col" className="px-3 py-2">
                 Estado
               </th>
-              <th scope="col" className="w-12 px-3 py-2">
-                <span className="sr-only">Ficha</span>
+              <th scope="col" className="w-24 px-3 py-2">
+                <span className="sr-only">Acciones</span>
               </th>
             </tr>
           </thead>
@@ -193,7 +194,16 @@ export function TablaPacientes({ pacientes }: { pacientes: Paciente[] }) {
                   </span>
                 </td>
                 {/* La acción "ver ficha" llega con la ficha del paciente (T3). */}
-                <td className="px-3 py-3" />
+                <td className="px-3 py-3 text-right">
+                  <Link
+                    href={`/pacientes/${paciente.id}`}
+                    aria-label={`Ver ficha de ${paciente.nombre} ${paciente.apellido}`}
+                    className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1 py-0.5 text-xs font-semibold text-brand-deep transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    Ver ficha
+                    <ArrowChevronRight className="size-3.5" />
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>
