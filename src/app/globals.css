@@ -1,26 +1,106 @@
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import "@heroui/styles";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-plus-jakarta);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/*
+  BaleadaFit — tema de marca (esmeralda, derivado del logo y del design system de Stitch).
+  Overrides sobre los tokens semánticos de HeroUI v3. Hue 162 = #10B981.
+  Sin capa (unlayered) para ganarle a los @layer de @heroui/styles.
+*/
+
+/* Tokens de marca (no cambian entre light y dark) */
+:root {
+  --brand: #10b981;
+  --brand-soft: #ecfdf5;
+  --brand-deep: #065f46;
+  --brand-mint: #a7f3d0;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-mint: var(--brand-mint);
+}
+
+/* Light */
+:root,
+.light,
+.default,
+[data-theme="light"],
+[data-theme="default"] {
+  color-scheme: light;
+
+  --background: oklch(0.985 0.007 162);
+  --foreground: oklch(0.25 0.04 163);
+
+  --surface: oklch(1 0 0);
+  --surface-foreground: var(--foreground);
+
+  --overlay: oklch(1 0 0);
+  --overlay-foreground: var(--foreground);
+
+  --muted: oklch(0.55 0.02 162);
+
+  --default: oklch(0.94 0.012 162);
+  --default-foreground: oklch(0.29 0.03 163);
+
+  /* Acento de marca: esmeralda profundo con texto blanco (contraste AA) */
+  --accent: oklch(0.56 0.13 162);
+  --accent-foreground: var(--snow);
+
+  --field-background: oklch(1 0 0);
+  --field-foreground: var(--foreground);
+  --field-placeholder: var(--muted);
+  --field-border: oklch(0.9 0.02 162);
+  --field-border-width: 1px;
+
+  --border: oklch(0.9 0.02 162);
+  --separator: oklch(0.93 0.015 162);
+  --focus: var(--accent);
+  --link: var(--accent);
+
+  --success: oklch(0.696 0.17 162);
+  --success-foreground: oklch(0.22 0.03 163);
+}
+
+/* Dark */
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: oklch(0.17 0.02 163);
+  --foreground: var(--snow);
+
+  --surface: oklch(0.21 0.02 163);
+  --surface-foreground: var(--foreground);
+
+  --overlay: oklch(0.24 0.02 163);
+  --overlay-foreground: var(--foreground);
+
+  --muted: oklch(0.7 0.02 162);
+
+  --default: oklch(0.28 0.02 163);
+  --default-foreground: var(--snow);
+
+  /* En oscuro el esmeralda sube de luminosidad para mantener contraste */
+  --accent: oklch(0.75 0.17 162);
+  --accent-foreground: oklch(0.18 0.03 163);
+
+  --field-background: oklch(0.21 0.02 163);
+  --field-foreground: var(--foreground);
+  --field-placeholder: var(--muted);
+  --field-border: oklch(0.32 0.02 163);
+
+  --border: oklch(0.32 0.02 163);
+  --separator: oklch(0.28 0.02 163);
+  --focus: var(--accent);
+  --link: var(--accent);
+
+  --success: oklch(0.75 0.17 162);
+  --success-foreground: oklch(0.18 0.03 163);
 }
