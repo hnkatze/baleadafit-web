@@ -17,7 +17,7 @@ export type NavItem = {
 /** Rutas todavía no construidas: se muestran deshabilitadas para no romper la navegación. */
 export const MAIN_NAV: NavItem[] = [
   { label: "Inicio", href: "/", icon: House },
-  { label: "Pacientes", icon: Persons },
+  { label: "Pacientes", href: "/pacientes", icon: Persons },
   { label: "Planes", icon: ListCheck },
   { label: "Alimentos", icon: SquareListUl },
   { label: "Agenda", icon: Calendar },

@@ -6,6 +6,14 @@ import { cn } from "@heroui/react";
 import { Logo } from "@/components/brand/logo";
 import { MAIN_NAV, SECONDARY_NAV, type NavItem } from "@/lib/nav";
 
+/** `/` solo coincide exacto; el resto también ilumina sus subrutas (`/pacientes/[id]`). */
+function isActive(pathname: string, href?: string) {
+  if (!href) return false;
+  if (href === "/") return pathname === "/";
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 function NavEntry({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
   const shared =
@@ -72,20 +80,12 @@ export function Sidebar({ nombre, rol }: { nombre: string; rol: string }) {
           Panel clínico
         </p>
         {MAIN_NAV.map((item) => (
-          <NavEntry
-            key={item.label}
-            item={item}
-            active={Boolean(item.href) && pathname === item.href}
-          />
+          <NavEntry key={item.label} item={item} active={isActive(pathname, item.href)} />
         ))}
 
         <div className="mt-auto flex flex-col gap-1 pb-3">
           {SECONDARY_NAV.map((item) => (
-            <NavEntry
-              key={item.label}
-              item={item}
-              active={Boolean(item.href) && pathname === item.href}
-            />
+            <NavEntry key={item.label} item={item} active={isActive(pathname, item.href)} />
           ))}
         </div>
       </nav>
