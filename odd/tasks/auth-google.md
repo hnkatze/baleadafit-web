@@ -20,12 +20,12 @@ token viajando a la API en cada request.
 
 ## Tasks
 
-- T1 — Cliente Firebase (`src/lib/firebase/client.ts`) + env · S1, S2
-- T2 — `/login` con "Continuar con Google", estados de carga/error · S1
-- T3 — `POST/DELETE /api/session` con cookie httpOnly y refresh desde el cliente · S3
-- T4 — `apiGet` prioriza la sesión sobre el dev token · S4
-- T5 — Logout en el perfil del sidebar · S5
-- T6 — Verificación: build, lint, navegador y chequeo independiente por ser cambio de auth · S1-S5
+- T1 — Cliente Firebase (`src/lib/firebase/client.ts`) + env · S1, S2 · `de1ecaf`
+- T2 — `/login` con "Continuar con Google", estados de carga/error · S1 · `de1ecaf`
+- T3 — `POST/DELETE /api/session` con cookie httpOnly y refresh desde el cliente · S3 · `de1ecaf`
+- T4 — `apiGet` prioriza la sesión sobre el dev token · S4 · `de1ecaf`
+- T5 — Logout en el perfil del sidebar · S5 · `de1ecaf`
+- T6 — Verificación: build, lint, navegador y chequeo independiente por ser cambio de auth · S1-S5 · `de1ecaf`
 
 ## Log
 
