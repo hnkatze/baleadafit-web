@@ -20,11 +20,11 @@ reales de la API y KPIs del día. Referencia visual: pantalla de Stitch "Dashboa
 
 ## Tasks
 
-- T1 — Logo nuevo (componente + icono + reemplazo en login) · S1
-- T2 — Cliente de API server-side (`src/lib/api`) · S3
-- T3 — Shell de la app: sidebar + topbar · S2, S4
-- T4 — Home `/` con saludo, KPIs, citas y accesos rápidos · S2, S3, S4
-- T5 — Verificación (build, lint, navegador desktop/mobile) · S1-S4
+- T1 — Logo nuevo (componente + icono + reemplazo en login) · S1 · `c7b57c0`
+- T2 — Cliente de API server-side (`src/lib/api`) · S3 · `014d2eb`
+- T3 — Shell de la app: sidebar + topbar · S2, S4 · `014d2eb`
+- T4 — Home `/` con saludo, KPIs, citas y accesos rápidos · S2, S3, S4 · `014d2eb`
+- T5 — Verificación (build, lint, navegador desktop/mobile) · S1-S4 · `014d2eb`
 
 ## Log
 
@@ -33,3 +33,11 @@ reales de la API y KPIs del día. Referencia visual: pantalla de Stitch "Dashboa
   Monograma (Versión Blanca)", "Dashboard Principal - BaleadaFit Pro".
 - L3 — API verificada con dev bypass: `/dashboard` = `{"pacientesActivos":1,"planesEnBorrador":6,"citasHoy":[]}`,
   `/auth/me` = `{"rol":"nutricionista","perfil":{"nombre":"Lic. Sofia Herrera",...}}`.
+- L4 — Verificación (T5): `npm run build` exit 0 (`ƒ /` dinámica, `○ /login` estática), `eslint src` limpio,
+  desktop 1440 y mobile 390 revisados en el navegador con datos reales de la API.
+- L5 — Bug encontrado en verificación y corregido: `CitaHoy` declaraba `horaInicio`/`horaFin`/`modalidad`,
+  pero la API manda `fechaHora` + `duracionMin`; con una cita agendada `horaLabel(undefined)` rompía `/`.
+  También `/auth/me` puede devolver `perfil: null`.
+- L6 — Pendientes abiertos por decisión de producto: (a) la API no expone `modalidad` de la cita (chip oculto),
+  (b) no hay guard por rol para `perfil: null`, (c) falta navegación en mobile, (d) `.env*` corregido con
+  `!.env.example`.
