@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ArrowChevronLeft, ArrowChevronRight } from "@gravity-ui/icons";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { ArrowChevronLeft, ArrowChevronRight, ArrowRightFromSquare } from "@gravity-ui/icons";
 import { cn } from "@heroui/react";
 import { Logo, LogoMark } from "@/components/brand/logo";
+import { SessionSync } from "@/components/auth/session-sync";
+import { clearSession } from "@/components/auth/client-session";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 import { MAIN_NAV, SECONDARY_NAV, type NavItem } from "@/lib/nav";
 
 /** `/` solo coincide exacto; el resto también ilumina sus subrutas (`/pacientes/[id]`). */
@@ -74,10 +78,56 @@ function NavEntry({
   );
 }
 
+function SignOutButton({
+  collapsed,
+  pending,
+  onSignOut,
+}: {
+  collapsed: boolean;
+  pending: boolean;
+  onSignOut: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSignOut}
+      disabled={pending}
+      aria-label="Cerrar sesión"
+      title={collapsed ? "Cerrar sesión" : undefined}
+      className={cn(
+        "grid size-9 shrink-0 place-items-center rounded-lg text-foreground/55 transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50",
+      )}
+    >
+      <ArrowRightFromSquare className="size-4" />
+    </button>
+  );
+}
+
 export function Sidebar({ nombre, rol }: { nombre: string; rol: string }) {
   const pathname = usePathname();
+  const router = useRouter();
   // Solo estado local: el ancho del riel no se persiste entre sesiones.
   const [collapsed, setCollapsed] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+
+    try {
+      await signOut(getFirebaseAuth());
+    } catch {
+      // Sin sesión de Firebase (o sin config): igual limpiamos la cookie.
+    }
+
+    try {
+      await clearSession();
+    } catch {
+      // Si el route handler falla igual volvemos al login.
+    }
+
+    router.replace("/login");
+  }
+
   const initials = nombre
     .split(" ")
     .filter(Boolean)
@@ -165,12 +215,15 @@ export function Sidebar({ nombre, rol }: { nombre: string; rol: string }) {
       </nav>
 
       {collapsed ? (
-        <div
-          title={`${nombre} · ${rol}`}
-          className="mx-auto mb-3 grid size-9 shrink-0 place-items-center rounded-full bg-brand/12 text-xs font-bold text-brand-deep"
-        >
-          <span className="sr-only">{`${nombre} · ${rol}`}</span>
-          {initials}
+        <div className="mx-auto mb-3 flex shrink-0 flex-col items-center gap-2">
+          <div
+            title={`${nombre} · ${rol}`}
+            className="grid size-9 place-items-center rounded-full bg-brand/12 text-xs font-bold text-brand-deep"
+          >
+            <span className="sr-only">{`${nombre} · ${rol}`}</span>
+            {initials}
+          </div>
+          <SignOutButton collapsed pending={signingOut} onSignOut={handleSignOut} />
         </div>
       ) : (
         <div className="m-3 flex items-center gap-3 rounded-2xl border border-border/70 bg-background p-3">
@@ -183,8 +236,13 @@ export function Sidebar({ nombre, rol }: { nombre: string; rol: string }) {
               {rol}
             </span>
           </span>
+          <span className="ml-auto">
+            <SignOutButton collapsed={false} pending={signingOut} onSignOut={handleSignOut} />
+          </span>
         </div>
       )}
+
+      <SessionSync />
     </aside>
   );
 }
