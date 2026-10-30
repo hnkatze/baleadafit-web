@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="mintGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </defs>
+  <!-- Background neutral subtle circle for contrast preview -->
+  <rect width="400" height="400" rx="40" fill="#0f172a" />
+  
+  <!-- Emblem: Clean crescent / folded half baleada arc integrating with an energetic vital pulse -->
+  <g transform="translate(200, 160)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Tortilla arc (crescent silhouette) with clean stroke weight perfect for embroidery -->
+    <path d="M -90, -10 C -90, -75 90, -75 90, -10 C 90, 50 -90, 50 -90, -10 Z" 
+          fill="none" stroke="#ffffff" stroke-width="12" />
+    
+    <!-- Dynamic clinical pulse line (heartbeat / metabolic vitality) cutting cleanly inside -->
+    <path d="M -65, -10 L -25, -10 L -10, -42 L 10, 24 L 25, -10 L 65, -10" 
+          fill="none" stroke="url(#mintGrad)" stroke-width="12" />
+          
+    <!-- Subtle energetic leaf / metabolic accent at the fold apex -->
+    <circle cx="0" cy="-68" r="8" fill="#34d399" />
+  </g>
+  
+  <!-- Wordmark minimal and clear -->
+  <text x="200" y="295" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1">
+    BALEADA<tspan fill="#34d399">FIT</tspan>
+  </text>
+  
+  <!-- Subtitle badge for apparel -->
+  <text x="200" y="328" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#94a3b8" text-anchor="middle" letter-spacing="6">
+    PRO · CLINICAL NUTRITION
+  </text>
+</svg>
