@@ -75,7 +75,7 @@ export function Sidebar({ nombre, rol }: { nombre: string; rol: string }) {
         </Link>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-3">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3">
         <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground/40">
           Panel clínico
         </p>

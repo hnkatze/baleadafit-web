@@ -11,11 +11,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const rol = sesion?.rol ?? "nutricionista";
 
   return (
-    <div className="flex min-h-dvh flex-1">
+    <div className="flex h-dvh w-full overflow-hidden">
       <Sidebar nombre={nombre} rol={rol} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar nombre={nombre} />
-        <main className="flex-1 bg-background">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="shrink-0">
+          <Topbar nombre={nombre} />
+        </div>
+        <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+          {children}
+        </main>
       </div>
     </div>
   );
