@@ -20,11 +20,11 @@ evolución de mediciones. Cubre la issue #4 ("Tabla con búsqueda" + "Gráfica d
 
 ## Tasks
 
-- T1 — `src/lib/api/pacientes.ts`: tipos (Paciente, FichaPaciente) + `getPacientes`, `getFicha` · S4
-- T2 — `/pacientes`: tabla con búsqueda y acceso a la ficha · S1, S3, S4 · commit
-- T3 — `/pacientes/[id]`: cabecera, progreso, requerimiento, adherencia, alertas y gráfica de evolución · S1, S3, S4, S5 · commit
-- T4 — Navegación: habilitar "Pacientes" en el sidebar · S1 · commit
-- T5 — Verificación por slice: build, lint y navegador (desktop + mobile) · S1-S5
+- T1 — `src/lib/api/pacientes.ts`: tipos (Paciente, FichaPaciente) + `getPacientes`, `getFicha` · S4 · `e14873e`, `7fd60f1`
+- T2 — `/pacientes`: tabla con búsqueda y acceso a la ficha · S1, S3, S4 · `e14873e`
+- T3 — `/pacientes/[id]`: cabecera, progreso, requerimiento, adherencia, alertas y gráfica de evolución · S1, S3, S4, S5 · `7fd60f1`
+- T4 — Navegación: habilitar "Pacientes" en el sidebar · S1 · `e14873e`
+- T5 — Verificación por slice: build, lint y navegador (desktop + mobile) · S1-S5 · `e14873e`, `7fd60f1`
 
 ## Log
 
@@ -38,3 +38,13 @@ evolución de mediciones. Cubre la issue #4 ("Tabla con búsqueda" + "Gráfica d
   requerimiento{medicion,edad,tmb,factorActividad,gastoTotal,ajusteMeta,kcalObjetivo,proteinaG},
   adherencia30d{porcentaje,cumplidos,total}, alertas[], evolucion[7], consultas{proximas,pasadas},
   planes[]}`.
+- L3 — Verificación: `npm run build` exit 0 (`ƒ /pacientes`, `◐ /pacientes/[id]`), `eslint src` limpio, listado y
+  ficha completos revisados en el navegador contra la API real (Ana Lopez: IMC 28.7 sobrepeso, 34% grasa,
+  TMB 1,418 / objetivo 1,450 kcal / proteína 90.6 g, adherencia 100%, 7 planes).
+- L4 — Hallazgos de contrato corregidos en el camino: `adherencia30d.porcentaje` viene como fracción 0..1
+  (se normaliza ×100); `progreso.ritmoKgSemana` y `proyeccionKg` llegan `null`; las 7 entradas de `evolucion`
+  comparten fecha, así que el eje X es el orden de medición y no tiempo proporcional; las fechas de
+  calendario (nacimiento, mediciones) se formatean en UTC porque la API las guarda a medianoche UTC.
+- L5 — Pendientes: el botón "Nuevo paciente" sigue deshabilitado (falta `POST /pacientes`), `notFound()`
+  muestra el 404 por defecto en inglés (falta `not-found.tsx` en español), y las ramas de 0/1 medición de la
+  gráfica están inspeccionadas pero no ejecutadas porque la base tiene un solo paciente con 7 registros.
