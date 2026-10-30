@@ -1,10 +1,16 @@
+import { cookies } from "next/headers";
+
 const API_URL = process.env.API_URL ?? "http://localhost:3000";
 
+/** Name of the httpOnly cookie that holds the Firebase ID token (see /api/session). */
+export const SESSION_COOKIE = "bfit_session";
+
+/** Short-lived on purpose: the client refreshes it through `onIdTokenChanged`. */
+export const SESSION_MAX_AGE_SECONDS = 60 * 60;
+
 /**
- * Mientras no exista Firebase Auth (issue #2) hablamos con la API usando el bypass
- * de desarrollo: `Authorization: Bearer dev:<uid>:<correo>` (ver docs/contexto-api.md).
- * Cuando el login esté conectado, el token lo emite el SDK del cliente y este helper
- * pasa a recibirlo por parámetro.
+ * Development bypass, used only while there is no session cookie:
+ * `Authorization: Bearer dev:<uid>:<correo>` (ver docs/contexto-api.md).
  */
 const DEV_TOKEN = process.env.API_DEV_TOKEN ?? "dev:nutri-1:nutri@correo.hn";
 
@@ -18,14 +24,31 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Prefers the session token from the httpOnly cookie (spec S4) and falls back to the
+ * dev token so the portal keeps working without a login.
+ */
+async function resolveToken(): Promise<string> {
+  try {
+    const session = (await cookies()).get(SESSION_COOKIE)?.value;
+
+    if (session && session.length > 0) return session;
+  } catch {
+    // Called outside a request scope (e.g. prerender): no cookie store available.
+  }
+
+  return DEV_TOKEN;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
+  const token = await resolveToken();
   let response: Response;
 
   try {
     response = await fetch(`${API_URL}${path}`, {
       headers: {
         Accept: "application/json",
-        Authorization: `Bearer ${DEV_TOKEN}`,
+        Authorization: `Bearer ${token}`,
       },
       cache: "no-store",
     });
