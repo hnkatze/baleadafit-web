@@ -5,31 +5,24 @@ import { useRouter } from "next/navigation";
 import {
   getRedirectResult,
   GoogleAuthProvider,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
 } from "firebase/auth";
-import { Alert, Button } from "@heroui/react";
+import { Alert, Button, FieldError, Input, Label, TextField } from "@heroui/react";
 import { getFirebaseAuth } from "@/lib/firebase/client";
+import {
+  errorCode,
+  googleSignInMessage,
+  isSilentCode,
+  needsRedirectFallback,
+  passwordSignInMessage,
+} from "@/lib/firebase/errors";
 import { storeSession } from "./client-session";
 
-/** Popup is not usable here; a full redirect does the same job (spec S1). */
-const REDIRECT_FALLBACK_CODES = new Set([
-  "auth/popup-blocked",
-  "auth/operation-not-supported-in-this-environment",
-]);
+type Method = "google" | "password";
 
-/** The user closed the popup or opened another one: no error banner. */
-const SILENT_CODES = new Set(["auth/popup-closed-by-user", "auth/cancelled-popup-request"]);
-
-const ERROR_MESSAGE =
-  "No pudimos iniciar sesión con Google. Probá de nuevo en unos segundos.";
-
-function errorCode(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
-
-  const code = (error as { code?: unknown }).code;
-  return typeof code === "string" ? code : undefined;
-}
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -56,8 +49,21 @@ function GoogleIcon({ className }: { className?: string }) {
 
 export function LoginForm() {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<Method | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const isEmailInvalid = submitted && !EMAIL_PATTERN.test(email.trim());
+  const isPasswordInvalid = submitted && password.length === 0;
+
+  /** Same bridge for both methods: ID token in, httpOnly cookie out (spec S3). */
+  async function finishSignIn(idToken: string) {
+    await storeSession(idToken);
+    router.replace("/");
+    router.refresh();
+  }
 
   // Coming back from the redirect fallback: finish the sign-in here, since the
   // login page is not inside the app shell that keeps the cookie fresh.
@@ -69,16 +75,16 @@ export function LoginForm() {
         const credential = await getRedirectResult(getFirebaseAuth());
         if (!credential || cancelled) return;
 
-        setPending(true);
+        setPending("google");
         await storeSession(await credential.user.getIdToken());
         if (cancelled) return;
 
         router.replace("/");
         router.refresh();
       } catch (redirectError) {
-        if (!cancelled) setError(errorMessage(redirectError));
+        if (!cancelled) setError(googleSignInMessage(redirectError));
       } finally {
-        if (!cancelled) setPending(false);
+        if (!cancelled) setPending(null);
       }
     }
 
@@ -90,8 +96,10 @@ export function LoginForm() {
   }, [router]);
 
   async function handleGoogleSignIn() {
+    if (pending !== null) return;
+
     setError(null);
-    setPending(true);
+    setPending("google");
 
     try {
       const auth = getFirebaseAuth();
@@ -103,23 +111,43 @@ export function LoginForm() {
         idToken = await credential.user.getIdToken();
       } catch (popupError) {
         const code = errorCode(popupError);
-        if (code && SILENT_CODES.has(code)) return;
-        if (!code || !REDIRECT_FALLBACK_CODES.has(code)) throw popupError;
+        if (isSilentCode(code)) return;
+        if (!needsRedirectFallback(code)) throw popupError;
 
         await signInWithRedirect(auth, provider);
         return;
       }
 
-      await storeSession(idToken);
-      router.replace("/");
-      router.refresh();
+      await finishSignIn(idToken);
     } catch (signInError) {
       const code = errorCode(signInError);
-      if (code && SILENT_CODES.has(code)) return;
+      if (isSilentCode(code)) return;
 
-      setError(errorMessage(signInError));
+      setError(googleSignInMessage(signInError));
     } finally {
-      setPending(false);
+      setPending(null);
+    }
+  }
+
+  async function handlePasswordSignIn(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending !== null) return;
+
+    setSubmitted(true);
+    setError(null);
+
+    const cleanEmail = email.trim();
+    if (!EMAIL_PATTERN.test(cleanEmail) || password.length === 0) return;
+
+    setPending("password");
+
+    try {
+      const credential = await signInWithEmailAndPassword(getFirebaseAuth(), cleanEmail, password);
+      await finishSignIn(await credential.user.getIdToken());
+    } catch (signInError) {
+      setError(passwordSignInMessage(signInError));
+    } finally {
+      setPending(null);
     }
   }
 
@@ -133,13 +161,64 @@ export function LoginForm() {
         </p>
       </header>
 
-      <Button fullWidth isPending={pending} onPress={handleGoogleSignIn}>
+      <Button
+        type="button"
+        fullWidth
+        isPending={pending === "google"}
+        isDisabled={pending !== null}
+        onPress={handleGoogleSignIn}
+      >
         <GoogleIcon className="size-5" />
-        {pending ? "Conectando…" : "Continuar con Google"}
+        {pending === "google" ? "Conectando…" : "Continuar con Google"}
       </Button>
 
+      <div className="flex items-center gap-3 text-xs tracking-wide text-foreground/45">
+        <span className="h-px flex-1 bg-border" />
+        o con tu correo
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <form onSubmit={handlePasswordSignIn} noValidate className="flex flex-col gap-4">
+        <TextField
+          fullWidth
+          isRequired
+          isInvalid={isEmailInvalid}
+          name="email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+        >
+          <Label>Correo electrónico</Label>
+          <Input placeholder="nutri@baleadafit.hn" autoComplete="email" />
+          <FieldError>Ingresá un correo válido.</FieldError>
+        </TextField>
+
+        <TextField
+          fullWidth
+          isRequired
+          isInvalid={isPasswordInvalid}
+          name="password"
+          type="password"
+          value={password}
+          onChange={setPassword}
+        >
+          <Label>Contraseña</Label>
+          <Input placeholder="Tu contraseña" autoComplete="current-password" />
+          <FieldError>Ingresá tu contraseña.</FieldError>
+        </TextField>
+
+        <Button
+          type="submit"
+          fullWidth
+          isPending={pending === "password"}
+          isDisabled={pending !== null}
+        >
+          {pending === "password" ? "Entrando…" : "Entrar"}
+        </Button>
+      </form>
+
       <p className="text-xs text-foreground/55">
-        Usá la cuenta de Google habilitada como cuenta clínica de BaleadaFit. Si
+        Usá la cuenta clínica habilitada en BaleadaFit (Google o correo). Si
         todavía no tenés acceso, pedíselo a la coordinación.
       </p>
 
@@ -154,13 +233,4 @@ export function LoginForm() {
       ) : null}
     </div>
   );
-}
-
-/** Same user-facing copy for every failure: never echo SDK details or tokens. */
-function errorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.includes("Firebase no está configurado")) {
-    return "Este entorno no tiene configurado Firebase. Avisale al equipo técnico.";
-  }
-
-  return ERROR_MESSAGE;
 }
