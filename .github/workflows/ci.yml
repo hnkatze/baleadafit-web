@@ -15,13 +15,15 @@ concurrency:
 jobs:
   verificar:
     name: tests, lint y build
-    runs-on: ubuntu-latest
+    # Runner pinneado: `ubuntu-latest` migra a Ubuntu 26 en octubre de 2026 y
+    # no queremos que la CI cambie de sistema operativo sola.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
