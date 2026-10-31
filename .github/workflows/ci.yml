@@ -1,0 +1,41 @@
+name: CI
+
+# main es público y sin protección: este workflow es la única red que impide
+# que un push deje el árbol roto en silencio.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: tests, lint y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - name: Lint
+        run: npm run lint
+
+      # API_URL no hace falta en el build: las pantallas que leen la API son
+      # dinámicas y la URL por defecto es la local. El build corre el typecheck.
+      - name: Build
+        run: npm run build
