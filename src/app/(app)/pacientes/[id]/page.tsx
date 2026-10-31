@@ -1,15 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowChevronLeft, TriangleExclamation } from "@gravity-ui/icons";
-import { Alert, cn } from "@heroui/react";
+import { ArrowChevronLeft, Flame, TriangleExclamation } from "@gravity-ui/icons";
+import { cn } from "@heroui/react";
+import { ApiErrorAlert } from "@/components/layout/api-error-alert";
 import { GraficaEvolucion } from "@/components/pacientes/grafica-evolucion";
+import { HabitosPaciente } from "@/components/pacientes/habitos-paciente";
+import { HistoricoMediciones } from "@/components/pacientes/historico-mediciones";
+import { SituacionClinica } from "@/components/pacientes/situacion-clinica";
 import { ApiError } from "@/lib/api/client";
-import { getFicha, type FichaPaciente } from "@/lib/api/pacientes";
+import { getFicha, getMediciones, type FichaPaciente, type Medicion } from "@/lib/api/pacientes";
+import { estadoRequerimiento } from "@/lib/ficha-estado";
+import { signedValue, value } from "@/lib/format";
 
 // Cache Components: la ficha lee la API en vivo, no se prerenderiza.
 export const instant = false;
 
-const decimal = new Intl.NumberFormat("es-HN", { maximumFractionDigits: 1 });
 const integer = new Intl.NumberFormat("es-HN", { maximumFractionDigits: 0 });
 
 const SEX_LABEL: Record<string, string> = { F: "Femenino", M: "Masculino" };
@@ -28,19 +33,6 @@ const PLAN_STATE_LABEL: Record<string, string> = {
   ACTIVO: "Activo",
   ARCHIVADO: "Archivado",
 };
-
-/** Todo número nulo o inválido se muestra como raya, nunca como `null` ni `NaN`. */
-function value(input: number | null | undefined, unit = "") {
-  if (input === null || input === undefined || !Number.isFinite(input)) return "—";
-  return `${decimal.format(input)}${unit ? ` ${unit}` : ""}`;
-}
-
-/** Igual que `value` pero conserva el signo del delta (ajuste de la meta, variación de peso). */
-function signedValue(input: number | null | undefined, unit = "") {
-  if (input === null || input === undefined || !Number.isFinite(input)) return "—";
-  const sign = input > 0 ? "+" : input < 0 ? "−" : "";
-  return `${sign}${decimal.format(Math.abs(input))}${unit ? ` ${unit}` : ""}`;
-}
 
 function Card({
   title,
@@ -94,13 +86,29 @@ export default async function FichaPacientePage({ params }: PageProps<"/paciente
   const { id } = await params;
 
   let ficha: FichaPaciente | null = null;
+  let mediciones: Medicion[] = [];
   let missing = false;
+  let fichaError: unknown = null;
+  let medicionesError: unknown = null;
 
-  try {
-    ficha = await getFicha(id);
-  } catch (error) {
+  // El histórico es una lectura aparte (S2): si falla, la ficha se sigue mostrando completa.
+  const [lecturaFicha, lecturaMediciones] = await Promise.allSettled([
+    getFicha(id),
+    getMediciones(id),
+  ]);
+
+  if (lecturaFicha.status === "fulfilled") {
+    ficha = lecturaFicha.value;
+  } else {
+    fichaError = lecturaFicha.reason;
     // Un 404 no es una caída de la API: el paciente no existe.
-    if (error instanceof ApiError && error.status === 404) missing = true;
+    if (lecturaFicha.reason instanceof ApiError && lecturaFicha.reason.status === 404) missing = true;
+  }
+
+  if (lecturaMediciones.status === "fulfilled") {
+    mediciones = lecturaMediciones.value;
+  } else {
+    medicionesError = lecturaMediciones.reason;
   }
 
   if (missing) notFound();
@@ -119,21 +127,16 @@ export default async function FichaPacientePage({ params }: PageProps<"/paciente
           <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">Ficha del paciente</h1>
         </header>
 
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>No se pudo leer la ficha</Alert.Title>
-            <Alert.Description>
-              Revisá que la API esté corriendo en <code>localhost:3000</code> y que
-              <code> API_URL</code> / <code>API_DEV_TOKEN</code> estén en <code>.env.local</code>.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
+        <ApiErrorAlert title="No se pudo leer la ficha" error={fichaError} />
       </div>
     );
   }
 
-  const { paciente, cabecera, progreso, requerimiento, adherencia30d, alertas, planes } = ficha;
+  const { paciente, cabecera, progreso, situacion, habitos, adherencia30d, alertas, planes } =
+    ficha;
+
+  // Un paciente sin mediciones llega con `requerimiento: null`: no hay cinco cifras que mostrar.
+  const requerimientoEstado = estadoRequerimiento(ficha.requerimiento);
 
   const subtitulo = [
     cabecera.edad === null ? null : `${integer.format(cabecera.edad)} años`,
@@ -187,6 +190,23 @@ export default async function FichaPacientePage({ params }: PageProps<"/paciente
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <Card
+          title="Situación clínica"
+          hint={
+            situacion.condiciones.length > 0
+              ? `${situacion.condiciones.length} ${situacion.condiciones.length === 1 ? "condición" : "condiciones"}`
+              : undefined
+          }
+        >
+          <SituacionClinica situacion={situacion} />
+        </Card>
+
+        <Card title="Hábitos" hint="Del alta">
+          <HabitosPaciente habitos={habitos} />
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <Card title="Gráfica de mediciones" hint={`${ficha.evolucion.length} registros`}>
           <GraficaEvolucion evolucion={ficha.evolucion} />
         </Card>
@@ -213,14 +233,53 @@ export default async function FichaPacientePage({ params }: PageProps<"/paciente
         </Card>
       </div>
 
-      <Card title="Requerimiento energético" hint="Cálculo de la API">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Stat label="TMB" value={value(requerimiento.tmb, "kcal")} />
-          <Stat label="Gasto total" value={value(requerimiento.gastoTotal, "kcal")} />
-          <Stat label="Ajuste por meta" value={signedValue(requerimiento.ajusteMeta, "kcal")} />
-          <Stat label="Kcal objetivo" value={value(requerimiento.kcalObjetivo, "kcal")} />
-          <Stat label="Proteína" value={value(requerimiento.proteinaG, "g")} />
-        </div>
+      <Card
+        title="Histórico de mediciones"
+        hint={
+          medicionesError
+            ? "No disponible"
+            : `${mediciones.length} ${mediciones.length === 1 ? "registro" : "registros"}`
+        }
+      >
+        <HistoricoMediciones mediciones={mediciones} error={medicionesError} />
+      </Card>
+
+      <Card
+        title="Requerimiento energético"
+        hint={requerimientoEstado.tipo === "sin-mediciones" ? "Sin mediciones" : "Cálculo de la API"}
+      >
+        {requerimientoEstado.tipo === "sin-mediciones" ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-6 py-8 text-center">
+            <Flame className="size-6 text-foreground/30" />
+            <p className="text-sm font-medium text-foreground/70">
+              Todavía no hay requerimiento energético
+            </p>
+            <p className="max-w-sm text-xs text-foreground/50">
+              Se calcula con la primera medición de peso: ahí la API puede estimar la TMB, el
+              gasto total y la proteína objetivo de este paciente.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Stat label="TMB" value={value(requerimientoEstado.requerimiento.tmb, "kcal")} />
+            <Stat
+              label="Gasto total"
+              value={value(requerimientoEstado.requerimiento.gastoTotal, "kcal")}
+            />
+            <Stat
+              label="Ajuste por meta"
+              value={signedValue(requerimientoEstado.requerimiento.ajusteMeta, "kcal")}
+            />
+            <Stat
+              label="Kcal objetivo"
+              value={value(requerimientoEstado.requerimiento.kcalObjetivo, "kcal")}
+            />
+            <Stat
+              label="Proteína"
+              value={value(requerimientoEstado.requerimiento.proteinaG, "g")}
+            />
+          </div>
+        )}
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">

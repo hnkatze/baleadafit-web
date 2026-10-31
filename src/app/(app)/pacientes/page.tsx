@@ -1,5 +1,5 @@
-import { Plus } from "@gravity-ui/icons";
-import { Alert, Button } from "@heroui/react";
+import { ApiErrorAlert } from "@/components/layout/api-error-alert";
+import { BotonNuevoPaciente } from "@/components/pacientes/boton-nuevo-paciente";
 import { TablaPacientes } from "@/components/pacientes/tabla-pacientes";
 import { getPacientes } from "@/lib/api/pacientes";
 
@@ -7,7 +7,12 @@ import { getPacientes } from "@/lib/api/pacientes";
 export const instant = false;
 
 export default async function PacientesPage() {
-  const pacientes = await getPacientes().catch(() => null);
+  // El status importa: un 403 no es una caída de la API (ver ApiErrorAlert).
+  const pacientesResult = await getPacientes().then(
+    (data) => ({ data, error: null }),
+    (error: unknown) => ({ data: null, error }),
+  );
+  const pacientes = pacientesResult.data;
   const total = pacientes?.length ?? 0;
 
   return (
@@ -21,26 +26,11 @@ export default async function PacientesPage() {
               : `${total} ${total === 1 ? "paciente" : "pacientes"} registrados · último peso y plan activo`}
           </p>
         </div>
-        <span title="El alta de pacientes todavía no está disponible">
-          <Button isDisabled>
-            <Plus className="size-4" />
-            Nuevo paciente
-          </Button>
-        </span>
+        <BotonNuevoPaciente />
       </header>
 
       {pacientes === null ? (
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>No se pudo leer la API</Alert.Title>
-            <Alert.Description>
-              Revisá que la API esté corriendo en <code>localhost:3000</code> y que
-              <code> API_URL</code> / <code>API_DEV_TOKEN</code> estén en
-              <code> .env.local</code>.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
+        <ApiErrorAlert title="No se pudo leer el listado" error={pacientesResult.error} />
       ) : (
         <TablaPacientes pacientes={pacientes} />
       )}

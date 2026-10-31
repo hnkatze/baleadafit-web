@@ -1,50 +1,25 @@
-import { Calendar, ListCheck, Persons, Plus } from "@gravity-ui/icons";
-import { Alert, Button } from "@heroui/react";
-import { getDashboard, getSesion, type CitaHoy } from "@/lib/api/dashboard";
+import { Calendar, ListCheck, Persons } from "@gravity-ui/icons";
+import { Button } from "@heroui/react";
+import { ApiErrorAlert } from "@/components/layout/api-error-alert";
+import { BotonNuevoPaciente } from "@/components/pacientes/boton-nuevo-paciente";
+import { getDashboard, getSesion } from "@/lib/api/dashboard";
+import { firstName, rangoHorario, todayLabel } from "@/lib/format";
 
 // Cache Components: el dashboard lee la API en vivo, no se prerenderiza.
 export const instant = false;
 
-const TZ = "America/Tegucigalpa";
-
-function todayLabel() {
-  const formatted = new Intl.DateTimeFormat("es-HN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: TZ,
-  }).format(new Date());
-
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
-function horaLabel(iso: string) {
-  return new Intl.DateTimeFormat("es-HN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: TZ,
-  }).format(new Date(iso));
-}
-
-/** La API entrega el instante de inicio y la duración; el fin se deriva acá. */
-function rangoHorario(cita: CitaHoy) {
-  const fin = new Date(
-    new Date(cita.fechaHora).getTime() + cita.duracionMin * 60_000,
-  );
-
-  return `${horaLabel(cita.fechaHora)} – ${horaLabel(fin.toISOString())}`;
-}
-
 export default async function HomePage() {
-  const [sesion, dashboard] = await Promise.all([
+  const [sesion, dashboardResult] = await Promise.all([
     getSesion().catch(() => null),
-    getDashboard().catch(() => null),
+    // El status importa: un 403 no es una caída de la API (ver ApiErrorAlert).
+    getDashboard().then(
+      (data) => ({ data, error: null }),
+      (error: unknown) => ({ data: null, error }),
+    ),
   ]);
+  const dashboard = dashboardResult.data;
 
-  const firstName = (sesion?.perfil?.nombre ?? "Nutricionista")
-    .replace(/^(Dra?\.|Lic\.)\s*/i, "")
-    .split(" ")[0];
+  const nombrePila = firstName(sesion?.perfil?.nombre);
 
   const citas = dashboard?.citasHoy ?? [];
 
@@ -74,32 +49,17 @@ export default async function HomePage() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-            ¡Hola, {firstName}!
+            ¡Hola, {nombrePila}!
           </h1>
           <p className="text-sm text-foreground/60">
             Resumen clínico de hoy · {todayLabel()} · Tegucigalpa (GMT-6)
           </p>
         </div>
-        <span title="Disponible cuando exista el módulo de pacientes">
-          <Button isDisabled>
-            <Plus className="size-4" />
-            Nuevo paciente
-          </Button>
-        </span>
+        <BotonNuevoPaciente />
       </header>
 
       {dashboard === null ? (
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>No se pudo leer la API</Alert.Title>
-            <Alert.Description>
-              Revisá que la API esté corriendo en <code>localhost:3000</code> y que
-              <code> API_URL</code> / <code>API_DEV_TOKEN</code> estén en
-              <code> .env.local</code>.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
+        <ApiErrorAlert title="No se pudo leer el dashboard" error={dashboardResult.error} />
       ) : null}
 
       <section className="grid gap-4 sm:grid-cols-3">
