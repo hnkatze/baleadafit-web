@@ -19,7 +19,7 @@ export const MAIN_NAV: NavItem[] = [
   { label: "Inicio", href: "/", icon: House },
   { label: "Pacientes", href: "/pacientes", icon: Persons },
   { label: "Planes", icon: ListCheck },
-  { label: "Alimentos", icon: SquareListUl },
+  { label: "Alimentos", href: "/alimentos", icon: SquareListUl },
   { label: "Agenda", icon: Calendar },
 ];
 
