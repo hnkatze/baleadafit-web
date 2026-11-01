@@ -29,15 +29,15 @@ token viajando a la API en cada request.
 
 ## Tasks
 
-- T1 — Cliente Firebase (`src/lib/firebase/client.ts`) + env · S1, S2 · `de1ecaf`
-- T2 — `/login` con "Continuar con Google", estados de carga/error · S1 · `de1ecaf`
-- T3 — `POST/DELETE /api/session` con cookie httpOnly y refresh desde el cliente · S3 · `de1ecaf`
-- T4 — `apiGet` prioriza la sesión sobre el dev token · S4 · `de1ecaf`
-- T5 — Logout en el perfil del sidebar · S5 · `de1ecaf`
-- T6 — Verificación: build, lint, navegador y chequeo independiente por ser cambio de auth · S1-S5 · `de1ecaf`
-- T7 — Login con correo/contraseña (`signInWithEmailAndPassword`) junto al botón de Google · S1 · pendiente de commit
-- T8 — Índice del swagger de producción (`/docs-json`) como contrato de referencia · S6 · pendiente de commit
-- T9 — `ApiErrorAlert` compartido: el status del error manda el mensaje (403 sin perfil, 401 sesión, 0 red) · S7 · pendiente de commit
+- T1 — Cliente Firebase (`src/lib/firebase/client.ts`) + env · S1, S2 · `6badc8a`
+- T2 — `/login` con "Continuar con Google", estados de carga/error · S1 · `6badc8a`
+- T3 — `POST/DELETE /api/session` con cookie httpOnly y refresh desde el cliente · S3 · `6badc8a`
+- T4 — `apiGet` prioriza la sesión sobre el dev token · S4 · `6badc8a`
+- T5 — Logout en el perfil del sidebar · S5 · `6badc8a`
+- T6 — Verificación: build, lint, navegador y chequeo independiente por ser cambio de auth · S1-S5 · `6badc8a`
+- T7 — Login con correo/contraseña (`signInWithEmailAndPassword`) junto al botón de Google · S1 · `5fe94e2`
+- T8 — Índice del swagger de producción (`/docs-json`) como contrato de referencia · S6 · `5fe94e2`
+- T9 — `ApiErrorAlert` compartido: el status del error manda el mensaje (403 sin perfil, 401 sesión, 0 red) · S7 · `5fe94e2`
 - T10 — Alta del perfil de nutricionista en producción (verificar correo + `POST /auth/registro-nutricionista`) · S7 · sin cambio de código
 
 ## Log
@@ -85,9 +85,12 @@ token viajando a la API en cada request.
   (`accounts:sendOobCode`, requestType `VERIFY_EMAIL`).
 - L16 — Credenciales de prod expuestas: `railway variables` imprimió la contraseña de Postgres y la
   `FIREBASE_PRIVATE_KEY` completas en el transcript. Hay que rotarlas. No se guardaron en memoria.
-- L17 — "ya esta verificado". Alta completada por la vía diseñada, sin tocar la base a mano:
-  `POST /auth/registro-nutricionista` con `{"nombre":"Lic. Camilo Henriquez"}` → **201**,
+- L17 — "ya esta verificado". Alta completada por la vía diseñada, sin tocar la base a mano:  `POST /auth/registro-nutricionista` con `{"nombre":"Lic. Camilo Henriquez"}` → **201**,
   id `46358776-9c74-4b01-a507-729344a61df2`. Después: `GET /auth/me` 200 `rol: nutricionista`,
   `GET /dashboard` 200 `{pacientesActivos:0,planesEnBorrador:0,citasHoy:[]}`, `GET /pacientes` 200 `[]`.
   En el portal: sidebar "Lic. Camilo Henriquez · Nutricionista", saludo "¡Hola, Camilo!", KPIs en 0, sin alerta.
 - L18 — El token emitido **antes** del alta siguió sirviendo: el guard resuelve el rol por request, no hace falta re-loguear.
+- L19 — El historial de `main` se reescribió para sacar la API key de Firebase de `.env.example` (ver L16).
+  Consecuencia para la trazabilidad: **solo cambió el SHA del commit de auth**, `de1ecaf` → `6badc8a`; los demás
+  commits citados conservaron el suyo porque `filter-branch` no reescribe los que no cambian de contenido.
+  Los tasks T7-T9 quedaron en `5fe94e2` cuando se commitearon.

@@ -37,7 +37,7 @@ nutricional, y editar cierra la vigente y abre una nueva.
 - T4 — `/alimentos`: tabla con búsqueda y filtros + navegación habilitada · S2
 - T5 — `/alimentos/nuevo`: formulario de alta completo · S3
 - T6 — `/alimentos/[id]`: detalle, edición y historial de versiones · S4, S5
-- T7 — Verificación: tests, lint, build, y alta + edición reales con las versiones a la vista · S2-S6
+- T7 — Verificación: tests, lint, build, y alta + edición reales con las versiones a la vista · S2-S6 · padre, 2026-10-31
 
 ## Log
 
@@ -56,3 +56,19 @@ nutricional, y editar cierra la vigente y abre una nueva.
 - L6 — Riesgo asumido y visible: editar un alimento **genera una versión nueva**. Los planes ya
   generados quedaron atados a la versión anterior, así que la UI tiene que decirlo antes de guardar,
   no después.
+- L7 — **Corrección de contrato (error de esta spec)**: `tabla` **no** es un objeto con los nutrientes.
+  Es un `string` con el nombre de la revisión de la tabla de composición (`"Inicial"`, configurable con
+  `TABLA_NUTRICIONAL`), y los nutrientes son campos **hermanos** de `version`
+  (`../baleadafit-api/src/alimentos/alimento-version.ts`, `datosVersion`). Tipar `tabla` como objeto
+  hacía desaparecer de la ficha fibra, azúcares, grasas saturadas, sodio, potasio, fósforo e índice
+  glucémico; los macros se salvaban solo por el fallback al alimento.
+- L8 — Verificación en producción con el alimento `1efc8386-…` ("Mangú de plátano"): alta real desde
+  el formulario, ficha con la tabla nutricional completa (fibra 3.8 g, sodio 8 mg), y tres ediciones
+  que produjeron v1 → v2 → v3 con `vigente_hasta` en las anteriores y solo la última vigente.
+- L9 — Bug de UX encontrado en esa pasada: el `catch` del formulario trataba la excepción de
+  `redirect()` como fallo de red, así que el usuario veía "no se pudo guardar" sobre un guardado que
+  sí había ocurrido y quedado versionado. Se detecta el digest `NEXT_REDIRECT` con
+  `src/lib/acciones.ts` (`esRedireccionDeNext`, con test) y se relanza.
+- L10 — Deuda conocida: los wrappers de campos (`CampoTexto`, `CampoNumero`, `CampoOpciones`) están
+  duplicados entre `components/pacientes/form-alta/campos.tsx` y `components/alimentos/form-alimento.tsx`.
+  Su lugar sería un módulo compartido; no se hizo para no mezclar refactors con la entrega.
