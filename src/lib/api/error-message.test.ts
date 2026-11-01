@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ApiError, API_URL } from "@/lib/api/client";
-import { describeAltaError, describeApiError } from "./error-message";
+import { describeAlimentoError, describeAltaError, describeApiError } from "./error-message";
 
 // `client.ts` reads `next/headers` at module load; this suite never uses cookies.
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
@@ -121,6 +121,86 @@ describe("describeAltaError", () => {
 
   it("does not leak the token of a non-ApiError failure", () => {
     const mensaje = describeAltaError(new Error("Bearer dev:nutri-1:nutri@correo.hn"));
+
+    expect(mensaje).not.toContain("dev:nutri-1");
+    expect(mensaje).toContain("No pudimos llegar");
+  });
+});
+
+describe("describeAlimentoError", () => {
+  it("names the duplicated name for a 409", () => {
+    expect(describeAlimentoError(new ApiError(409, "/alimentos"))).toBe(
+      "Ya existe un alimento con ese nombre.",
+    );
+  });
+
+  it("joins the validation detail of a 400 when it comes as an array", () => {
+    const error = new ApiError(400, "/alimentos", {
+      statusCode: 400,
+      message: [
+        "porcionGramos must not be greater than 2000",
+        "tiposComida must not be empty",
+      ],
+      error: "Bad Request",
+    });
+
+    expect(describeAlimentoError(error)).toBe(
+      "La API rechazó los datos: porcionGramos must not be greater than 2000; tiposComida must not be empty.",
+    );
+  });
+
+  it("shows the validation detail of a 400 when it comes as a string", () => {
+    const error = new ApiError(400, "/alimentos", {
+      statusCode: 400,
+      message: "contiene contiene etiquetas inexistentes: XYZ",
+      error: "Bad Request",
+    });
+
+    expect(describeAlimentoError(error)).toBe(
+      "La API rechazó los datos: contiene contiene etiquetas inexistentes: XYZ.",
+    );
+  });
+
+  it("falls back to a generic 400 message when there is no detail", () => {
+    expect(describeAlimentoError(new ApiError(400, "/alimentos"))).toBe(
+      "La API rechazó los datos, pero no dijo qué campos. Revisá el formulario y volvé a intentar.",
+    );
+  });
+
+  it("asks to log in again on a 401", () => {
+    expect(describeAlimentoError(new ApiError(401, "/alimentos"))).toBe(
+      "La sesión venció. Cerrá sesión y volvé a entrar.",
+    );
+  });
+
+  it("explains a 403 as a missing clinical profile", () => {
+    expect(describeAlimentoError(new ApiError(403, "/alimentos"))).toBe(
+      "Tu cuenta no tiene perfil clínico vinculado, así que la API no permite modificar el catálogo de alimentos.",
+    );
+  });
+
+  it("keeps any other status short and never leaks the raw body", () => {
+    const error = new ApiError(500, "/alimentos", {
+      statusCode: 500,
+      message: "prisma: connection reset",
+      error: "Internal Server Error",
+    });
+    const mensaje = describeAlimentoError(error);
+
+    expect(mensaje).toBe(
+      "La API falló con 500 al guardar el alimento. Volvé a intentar en un momento.",
+    );
+    expect(mensaje).not.toContain("prisma");
+  });
+
+  it("gives an actionable message when the API could not be reached", () => {
+    expect(describeAlimentoError(new ApiError(0, "/alimentos"))).toBe(
+      `No pudimos llegar a ${API_URL}. Revisá que la API responda y volvé a intentar: los datos del formulario siguen cargados.`,
+    );
+  });
+
+  it("does not leak the token of a non-ApiError failure", () => {
+    const mensaje = describeAlimentoError(new Error("Bearer dev:nutri-1:nutri@correo.hn"));
 
     expect(mensaje).not.toContain("dev:nutri-1");
     expect(mensaje).toContain("No pudimos llegar");

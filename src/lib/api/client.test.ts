@@ -189,3 +189,71 @@ describe("apiPost", () => {
     expect(error).toMatchObject({ status: 0, path: "/pacientes" });
   });
 });
+
+describe("apiPatch", () => {
+  it("sends a PATCH with a JSON body, the session token and without server caching", async () => {
+    const { apiPatch } = await loadClient("dev-token");
+    cookiesGet.mockReturnValue({ value: "session-token" });
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: "a1" }) });
+
+    await apiPatch("/alimentos/a1", { kcal: 240 });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("https://api.test/alimentos/a1", {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: "Bearer session-token",
+      },
+      body: JSON.stringify({ kcal: 240 }),
+      cache: "no-store",
+    });
+  });
+
+  it("falls back to the dev token when there is no session cookie", async () => {
+    const { apiPatch } = await loadClient("dev:nutri-1:nutri@correo.hn");
+    cookiesGet.mockReturnValue(undefined);
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: "a1" }) });
+
+    await apiPatch("/alimentos/a1", {});
+
+    const init = fetchMock.mock.calls[0][1] as { headers: Record<string, string> };
+    expect(init.headers.Authorization).toBe("Bearer dev:nutri-1:nutri@correo.hn");
+  });
+
+  it("resolves with the parsed response body", async () => {
+    const { apiPatch } = await loadClient("dev-token");
+    cookiesGet.mockReturnValue(undefined);
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: "a1", version: 2 }) });
+
+    await expect(apiPatch("/alimentos/a1", {})).resolves.toEqual({ id: "a1", version: 2 });
+  });
+
+  it("keeps the API validation detail in the ApiError of a 400", async () => {
+    const { apiPatch, ApiError } = await loadClient("dev-token");
+    cookiesGet.mockReturnValue(undefined);
+    const detalle = {
+      statusCode: 400,
+      message: ["porcionGramos must not be greater than 2000"],
+      error: "Bad Request",
+    };
+    fetchMock.mockResolvedValue({ ok: false, status: 400, json: async () => detalle });
+
+    const error = await apiPatch("/alimentos/a1", {}).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 400, path: "/alimentos/a1", detalle });
+  });
+
+  it("maps a failed fetch to a status 0 ApiError", async () => {
+    const { apiPatch, ApiError } = await loadClient("dev-token");
+    cookiesGet.mockReturnValue(undefined);
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+
+    const error = await apiPatch("/alimentos/a1", {}).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 0, path: "/alimentos/a1" });
+  });
+});

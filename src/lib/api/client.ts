@@ -93,12 +93,25 @@ export async function apiGet<T>(path: string): Promise<T> {
  * is only reachable from the server (Server Actions / Server Components).
  */
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  return enviar<T>("POST", path, body);
+}
+
+/**
+ * Same auth and cache rules as `apiPost`, for partial updates (`PATCH /alimentos/{id}`). The API
+ * accepts every field of the resource as optional here, so the body is usually a small diff.
+ */
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  return enviar<T>("PATCH", path, body);
+}
+
+/** Molde común de las mutaciones: mismo auth, mismo `cache: no-store` y mismo mapeo de errores. */
+async function enviar<T>(method: "POST" | "PATCH", path: string, body: unknown): Promise<T> {
   const token = await resolveToken();
   let response: Response;
 
   try {
     response = await fetch(`${API_URL}${path}`, {
-      method: "POST",
+      method,
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",

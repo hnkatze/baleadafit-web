@@ -98,3 +98,35 @@ export function describeAltaError(error: unknown): string {
 
   return `No pudimos llegar a ${API_URL}. Revisá que la API responda y volvé a intentar: los datos del formulario siguen cargados.`;
 }
+
+/**
+ * Error de las Server Actions del catálogo de alimentos (spec S6), ya en español y listo para
+ * mostrar dentro del formulario. Mismas reglas que `describeAltaError`: solo el detalle de
+ * validación del 400, nunca el token, el cuerpo crudo de la respuesta ni el path interno. El 409
+ * acá es nombre duplicado (en pacientes es el correo).
+ */
+export function describeAlimentoError(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 409) return "Ya existe un alimento con ese nombre.";
+
+    if (error.status === 400) {
+      const detalle = detalleDeValidacion(error.detalle);
+
+      return detalle === undefined
+        ? "La API rechazó los datos, pero no dijo qué campos. Revisá el formulario y volvé a intentar."
+        : `La API rechazó los datos: ${detalle}.`;
+    }
+
+    if (error.status === 401) return "La sesión venció. Cerrá sesión y volvé a entrar.";
+
+    if (error.status === 403) {
+      return "Tu cuenta no tiene perfil clínico vinculado, así que la API no permite modificar el catálogo de alimentos.";
+    }
+
+    if (error.status > 0) {
+      return `La API falló con ${error.status} al guardar el alimento. Volvé a intentar en un momento.`;
+    }
+  }
+
+  return `No pudimos llegar a ${API_URL}. Revisá que la API responda y volvé a intentar: los datos del formulario siguen cargados.`;
+}
